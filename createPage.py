@@ -7,6 +7,8 @@ from dotenv import load_dotenv
 load_dotenv()
 
 NOTION_SECRET = os.getenv('NOTION_SECRET')
+
+
 def generateChildBlocks(ingredients, instructions):
     print(instructions)
     blocks = []
@@ -91,6 +93,7 @@ def createPage(databaseId, recipeURL, data):
     title = data["title"]
     ingredients = data["ingredients"]
     instructions = data["instructions"]
+    image = data["image"]
     url = 'https://api.notion.com/v1'
     headers = {
         "accept": "application/json",
@@ -101,12 +104,34 @@ def createPage(databaseId, recipeURL, data):
 
     newPageData = {
         "parent": {"database_id": databaseId},
+        "cover": {
+            "type": "external",
+            "external": {
+                "url": image
+            }
+        },
+        "icon": {
+            "type": "emoji",
+            "emoji": "🌈"
+        },
         "properties": {
             "Name": {
                 "title": [
                     {
                         "text": {
-                            "content": f"{title}"
+                            "content": title
+                        }
+                    }
+                ],
+            },
+            "Link": {
+                "url": recipeURL
+            },
+            "Created by": {
+                "rich_text": [
+                    {
+                        "text": {
+                            "content": "Rainbow Plant Life"
                         }
                     }
                 ],
@@ -116,6 +141,7 @@ def createPage(databaseId, recipeURL, data):
     data = json.dumps(newPageData)
     res = requests.post(f"{url}/pages", headers=headers, data=data)
     parsedRes = res.json()
+    print(parsedRes)
     parentID = parsedRes['id']
     updateText = {
         "children": generateChildBlocks(ingredients, instructions)
@@ -123,5 +149,3 @@ def createPage(databaseId, recipeURL, data):
     updateData = json.dumps(updateText)
     update = requests.patch(
         f"{url}/blocks/{parentID}/children", headers=headers, data=updateData)
-
-    print(update.json())

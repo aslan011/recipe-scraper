@@ -1,5 +1,6 @@
 import requests
 import bs4
+import re
 
 def scrapeRecipe(url):
     page = requests.get(url)
@@ -8,6 +9,10 @@ def scrapeRecipe(url):
     ingredientsGroup = recipes[0].find_all("div", class_="wprm-recipe-ingredient-group")
     instructionsGroup = recipes[0].find_all("div", class_="wprm-recipe-instruction-group")
     title = soup.find("h1", class_="entry-title")
+    image_div = soup.find('div', class_='entry-image')['style']
+    rawImageURL = re.search("http.*[)]",image_div)
+    cleanedImageURL = image_div[rawImageURL.start():rawImageURL.end()-1]
+    print(cleanedImageURL)
     ingredientsArray = []
 
     for i in ingredientsGroup:
@@ -17,7 +22,7 @@ def scrapeRecipe(url):
     # assume only 1 set of instructions
     instructionsArray = parseInstructions(instructionsGroup[0])
 
-    return { "title": title.text, "ingredients": ingredientsArray, "instructions": instructionsArray }
+    return { "title": title.text, "ingredients": ingredientsArray, "instructions": instructionsArray, "image": cleanedImageURL }
 
 def getTextContent(el, tag, identifer):
     element = el.find(tag, identifer)
