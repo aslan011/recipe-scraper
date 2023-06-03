@@ -131,7 +131,7 @@ def createPage(databaseId, recipeURL, data):
                 "rich_text": [
                     {
                         "text": {
-                            "content": "Rainbow Plant Life"
+                            "content": data["author"]
                         }
                     }
                 ],

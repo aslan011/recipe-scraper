@@ -1,9 +1,50 @@
+import os
+from dotenv import load_dotenv
 import requests
 import bs4
 import re
 
+load_dotenv()
+
+SPOONACULAR_SECRET = os.getenv('SPOONACULAR_SECRET')
+
+def scrapeController(url):
+    if "rainbowplantlife" in url:
+        print(url)
+        return scrapeRPLRecipe(url)
+    else:
+        return scrapeRecipe(url)
+
 def scrapeRecipe(url):
-    page = requests.get(url)
+    params = {
+        "apiKey": SPOONACULAR_SECRET,
+        "url": url
+    }
+    spoonacularExtractURL = "https://api.spoonacular.com/recipes/extract"
+    recipe = requests.get(spoonacularExtractURL, params=params).json()
+    ingredientsArray = parseIngredients(recipe["extendedIngredients"])
+    instructionsArray = parseInstructions(recipe["analyzedInstructions"], recipe["instructions"])
+    return { "title": recipe["title"], "ingredients": ingredientsArray, "instructions": instructionsArray, "image": recipe["image"], "author": recipe["sourceName"] }
+
+def parseIngredients(ingredients):
+    obj = {"heading": ''}
+    obj["ingredients"] = []
+    for el in ingredients:
+        ingredient = el["originalName"]
+        obj["ingredients"].append(ingredient)
+    return [obj]
+
+def parseInstructions(instructions, instructionString):
+    if not instructions:
+        return [instructionString]
+    parsedInstructions = []
+    for el in instructions[0]["steps"]:
+        instruction = el["step"]
+        parsedInstructions.append(instruction)
+    return parsedInstructions
+
+def scrapeRPLRecipe(url):
+    page = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'})
     soup = bs4.BeautifulSoup(page.content, "html.parser")
     recipes = soup.find_all("div", class_="wprm-recipe-container")
     ingredientsGroup = recipes[0].find_all("div", class_="wprm-recipe-ingredient-group")
@@ -17,21 +58,21 @@ def scrapeRecipe(url):
 
     for i in ingredientsGroup:
         heading = i.find("h4", "wprm-recipe-group-name")
-        ingredientsArray.append(parseIngredients(i, heading))
+        ingredientsArray.append(parseRPLIngredients(i, heading))
     
     # assume only 1 set of instructions
-    instructionsArray = parseInstructions(instructionsGroup[0])
+    instructionsArray = parseRPLInstructions(instructionsGroup[0])
 
-    return { "title": title.text, "ingredients": ingredientsArray, "instructions": instructionsArray, "image": cleanedImageURL }
+    return { "title": title.text, "ingredients": ingredientsArray, "instructions": instructionsArray, "image": cleanedImageURL, "author": "Rainbow Plant Life" }
 
-def getTextContent(el, tag, identifer):
+def getRPLTextContent(el, tag, identifer):
     element = el.find(tag, identifer)
     if element:
         return element.text
     else:
         return ''
 
-def parseIngredients(group, heading):
+def parseRPLIngredients(group, heading):
     if (heading):
         heading = '*' + heading.text + '*'
     else:
@@ -42,14 +83,14 @@ def parseIngredients(group, heading):
     obj["ingredients"] = []
     ingredients = group.find("ul", class_="wprm-recipe-ingredients")
     for el in ingredients:
-        ingredient = getTextContent(el, "span","wprm-recipe-ingredient-name")
-        amount = getTextContent(el, "span", "wprm-recipe-ingredient-amount")
-        unit = getTextContent(el, "span", "wprm-recipe-ingredient-unit")
+        ingredient = getRPLTextContent(el, "span","wprm-recipe-ingredient-name")
+        amount = getRPLTextContent(el, "span", "wprm-recipe-ingredient-amount")
+        unit = getRPLTextContent(el, "span", "wprm-recipe-ingredient-unit")
         string = amount + ' ' + unit + ' ' + ingredient
         obj["ingredients"].append(string)
     return obj
 
-def parseInstructions(group):
+def parseRPLInstructions(group):
     instructions = []
     instructionsSoup = group.find("ul", class_="wprm-recipe-instructions")
     for el in instructionsSoup:

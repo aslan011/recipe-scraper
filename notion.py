@@ -1,6 +1,6 @@
 from createPage import createPage
 import requests
-from app import scrapeRecipe
+from app import scrapeController
 import os
 from dotenv import load_dotenv
 import json
@@ -37,7 +37,7 @@ response = requests.post(url, json=payload, headers=headers).json()
 
 recipeURL = response['results'][0]['properties']['URL']['title'][0]['text']['content']
 pageID = response['results'][0]["id"]
-scrapedRecipe = scrapeRecipe(recipeURL)
+scrapedRecipe = scrapeController(recipeURL)
 createPage(RECIPE_NOTION_DB_ID, recipeURL, scrapedRecipe)
 
 updateScrapedURL = f'https://api.notion.com/v1/pages/{pageID}'
